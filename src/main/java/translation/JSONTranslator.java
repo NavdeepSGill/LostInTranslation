@@ -65,7 +65,7 @@ public class JSONTranslator implements Translator {
                         }
 
                         if (!languages.contains(languageCode)) {
-                            languages.add("i");
+                            languages.add(languageCode);
                         }
                     }
                 }
