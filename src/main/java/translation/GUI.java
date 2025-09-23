@@ -2,28 +2,45 @@ package translation;
 
 import javax.swing.*;
 import java.awt.event.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
-
-// TODO Task D: Update the GUI for the program to align with UI shown in the README example.
-//            Currently, the program only uses the CanadaTranslator and the user has
-//            to manually enter the language code they want to use for the translation.
-//            See the examples package for some code snippets that may be useful when updating
-//            the GUI.
 public class GUI {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JPanel countryPanel = new JPanel();
-            JTextField countryField = new JTextField(10);
-            countryField.setText("can");
-            countryField.setEditable(false); // we only support the "can" country code for now
+
+            JSONTranslator translator = new JSONTranslator();
+            List<String> countryCodes = translator.getCountryCodes();
+            List<String> languageCodes = translator.getLanguageCodes();
+
+            // Convert country codes to country names for dropdown
+            CountryCodeConverter countryCodeConverter = new CountryCodeConverter();
+            List<String> countryNames = countryCodes
+                    .stream()
+                    .map(countryCodeConverter::fromCountryCode)
+                    .collect(Collectors.toList());
+            JComboBox<String> countryField = new JComboBox<>(countryNames.toArray(new String[0]));
             countryPanel.add(new JLabel("Country:"));
             countryPanel.add(countryField);
 
+            // Convert language codes to language names for scrollable list
             JPanel languagePanel = new JPanel();
-            JTextField languageField = new JTextField(10);
+            LanguageCodeConverter languageCodeConverter = new LanguageCodeConverter();
+            List<String> languageNames = languageCodes
+                    .stream()
+                    .map(languageCodeConverter::fromLanguageCode)
+                    .collect(Collectors.toList());
+
+            // Create a scrollable list for languages
+            JList<String> languageList = new JList<>(languageNames.toArray(new String[0]));
+            languageList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            JScrollPane languageScrollPane = new JScrollPane(languageList);
+            languageScrollPane.setPreferredSize(new java.awt.Dimension(200, 100));
+
             languagePanel.add(new JLabel("Language:"));
-            languagePanel.add(languageField);
+            languagePanel.add(languageScrollPane);
 
             JPanel buttonPanel = new JPanel();
             JButton submit = new JButton("Submit");
@@ -39,14 +56,22 @@ public class GUI {
             submit.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    String language = languageField.getText();
-                    String country = countryField.getText();
+                    String selectedLanguage = languageList.getSelectedValue();
+                    String country = (String)countryField.getSelectedItem();
+
+                    String countryCode = countryCodeConverter.fromCountry(country);
+                    String languageCode = languageCodeConverter.fromLanguage(selectedLanguage);
+
+                    if (selectedLanguage == null) {
+                        resultLabel.setText("Please select a language!");
+                        return;
+                    }
 
                     // for now, just using our simple translator, but
                     // we'll need to use the real JSON version later.
-                    Translator translator = new CanadaTranslator();
+                    Translator translator = new JSONTranslator();
 
-                    String result = translator.translate(country, language);
+                    String result = translator.translate(countryCode, languageCode);
                     if (result == null) {
                         result = "no translation found!";
                     }
@@ -67,8 +92,6 @@ public class GUI {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.pack();
             frame.setVisible(true);
-
-
         });
     }
 }
